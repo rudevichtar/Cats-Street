@@ -79,11 +79,12 @@ ServerData/
 
 .vscode/
 
-# Save files (если не хочешь хранить сохранения в репозитории)
+# Save files
 
 save_slot_*.json
+Assets/StreamingAssets/save_slot_*.json
 
-# LocalLow saves (на всякий случай)
+# LocalLow saves
 
 *.save
 *.sav

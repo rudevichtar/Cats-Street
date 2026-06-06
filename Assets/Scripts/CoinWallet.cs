@@ -5,10 +5,9 @@ using UnityEngine;
 
 public class CoinWallet : MonoBehaviour
 {
-    // БАЗОВЫЙ ПРИМЕР
-   public static CoinWallet Instance { get; private set; }
+    public static CoinWallet Instance { get; private set; }
 
-    [SerializeField] private int coins;
+    private int coins = 100;
     [SerializeField] private TMP_Text coinsText;
 
     public int Coins => coins;
@@ -35,6 +34,10 @@ public class CoinWallet : MonoBehaviour
             return false;
 
         coins -= amount;
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayCoinSpend();
+
         RefreshUI();
         return true;
     }
@@ -59,5 +62,28 @@ public class CoinWallet : MonoBehaviour
     {
         if (coinsText != null)
             coinsText.text = coins.ToString();
+    }
+
+    public void AddDailyReward(int day, int catsCount, int healthyCatsCount)
+    {
+        int baseReward = 40;
+
+        int rewardPerDay = 10;
+        int maxDayBonus = 80;
+
+        int rewardPerCat = 10;
+        int rewardPerHealthyCat = 5;
+
+        int dayBonus = Mathf.Min((day - 1) * rewardPerDay, maxDayBonus);
+
+        int totalReward =
+            baseReward +
+            dayBonus +
+            catsCount * rewardPerCat +
+            healthyCatsCount * rewardPerHealthyCat;
+
+        Add(totalReward);
+
+        Debug.Log($"Ежедневная награда: {totalReward} монет");
     }
 }

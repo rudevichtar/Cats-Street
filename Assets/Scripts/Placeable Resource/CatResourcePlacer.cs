@@ -10,6 +10,10 @@ public enum CatResourceType
 
 public class CatResourcePlacer : MonoBehaviour
 {
+    [Header("Prices")]
+    [SerializeField] private int foodCost = 10;
+    [SerializeField] private int bedCost = 15;
+
     [Header("References")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private GraphManager graphManager;
@@ -21,13 +25,18 @@ public class CatResourcePlacer : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private int usesPerResource = 3;
-    [SerializeField] private float cooldown = 60f;
+
+    [SerializeField] private float foodCooldown = 30f;
+    [SerializeField] private float bedCooldown = 45f;
 
     private bool placementMode;
     private CatResourceType selectedType;
 
     private float foodCooldownTimer;
     private float bedCooldownTimer;
+
+    public int foodCooldownSeconds => Mathf.CeilToInt(foodCooldown);
+    public int bedCooldownSeconds => Mathf.CeilToInt(bedCooldown);
 
     private void Start()
     {
@@ -77,13 +86,18 @@ public class CatResourcePlacer : MonoBehaviour
 
         if (!CanPlaceSelectedType())
         {
-            Debug.Log("Нельзя поставить: cooldown");
-
             float timeLeft = selectedType == CatResourceType.Food
                 ? foodCooldownTimer
                 : bedCooldownTimer;
 
-            Debug.Log($"Нельзя поставить. Осталось ждать: {timeLeft:F1} сек.");
+            string itemName = selectedType == CatResourceType.Food
+                ? "Еда"
+                : "Лежанка";
+
+            PopupHint.Instance.Show(
+                $"{itemName} будет доступна через {Mathf.CeilToInt(timeLeft)} сек."
+            );
+
             return;
         }
 
@@ -144,8 +158,21 @@ public class CatResourcePlacer : MonoBehaviour
             ? NodeType.Food
             : NodeType.SleepSpot;
 
+        int cost = selectedType == CatResourceType.Food
+        ? foodCost
+        : bedCost;
+
         if (prefab == null)
             return;
+
+        if (!CoinWallet.Instance.TrySpend(cost))
+        {
+            if (PopupHint.Instance != null)
+                PopupHint.Instance.Show("Недостаточно монет");
+
+            CancelPlacement();
+            return;
+        }
 
         CatPlaceableResource resource = Instantiate(
             prefab,
@@ -157,9 +184,9 @@ public class CatResourcePlacer : MonoBehaviour
         node.SetResource(resource);
 
         if (selectedType == CatResourceType.Food)
-            foodCooldownTimer = cooldown;
+            foodCooldownTimer = foodCooldown;
         else
-            bedCooldownTimer = cooldown;
+            bedCooldownTimer = bedCooldown;
 
         placementMode = false;
         HidePlacementHighlights();

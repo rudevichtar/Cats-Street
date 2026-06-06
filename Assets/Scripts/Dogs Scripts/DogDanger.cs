@@ -27,7 +27,7 @@ public class DogDanger : MonoBehaviour
 
         catNeeds.Damage(damageAmount);
 
-        if (catNeeds.Health <= 0f)
+        if (catNeeds.health <= 0f)
         {
             InjuredCat injuredCat = catNeeds.GetComponent<InjuredCat>();
 

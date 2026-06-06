@@ -12,8 +12,9 @@ public class SaveSlotUI : MonoBehaviour
     [SerializeField] private GameObject emptyState;
     [SerializeField] private GameObject filledState;
 
-    [Header("Empty UI")]
+    [Header("UI")]
     [SerializeField] private TMP_Text emptyTitleText;
+    [SerializeField] private DeleteConfirmPanel deleteConfirmPanel;
 
     [Header("Filled UI")]
     [SerializeField] private TMP_Text filledTitleText;
@@ -22,6 +23,8 @@ public class SaveSlotUI : MonoBehaviour
 
     [Header("Icons")]
     [SerializeField] private Sprite filledSlotIcon;
+
+    private int pendingDeleteSlot = -1;
 
     private void Start()
     {
@@ -104,5 +107,23 @@ public class SaveSlotUI : MonoBehaviour
         int secs = Mathf.FloorToInt(seconds % 60f);
 
         return $"{hours:00}:{minutes:00}:{secs:00}";
+    }
+
+    public void DeleteSave()
+    {
+        SaveSystem.DeleteSave(slotNumber);
+
+        Refresh();
+
+        Debug.Log($"Слот {slotNumber} удалён");
+    }
+
+    public void RequestDelete()
+    {
+        if (!SaveSystem.HasSave(slotNumber))
+            return;
+
+        if (deleteConfirmPanel != null)
+            deleteConfirmPanel.Open(slotNumber, this);
     }
 }

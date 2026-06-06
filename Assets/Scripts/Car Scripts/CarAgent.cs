@@ -19,6 +19,8 @@ public class CarAgent : MonoBehaviour
     [SerializeField] private RoadNode previousNode;
     [SerializeField] private List<RoadNode> plannedRoute = new();
 
+    private float baseMoveSpeed;
+
     private int visitedCount;
     private bool initialized;
 
@@ -55,6 +57,11 @@ public class CarAgent : MonoBehaviour
             TrafficSystem.Instance.UnregisterCar(this);
     }
 
+    private void Awake()
+    {
+        baseMoveSpeed = moveSpeed;
+    }
+
     private void Update()
     {
         if (!initialized || nextNode == null)
@@ -64,6 +71,11 @@ public class CarAgent : MonoBehaviour
         }
 
         MoveAlongPath();
+    }
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        moveSpeed = baseMoveSpeed * multiplier;
     }
 
     private void MoveAlongPath()

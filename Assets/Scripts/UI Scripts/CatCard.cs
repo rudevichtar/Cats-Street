@@ -76,9 +76,9 @@ public class CatCard : MonoBehaviour
         if (catIconImage != null && catProfile != null)
             catIconImage.sprite = catProfile.CatIcon;
 
-        hungerSlider.value = catNeeds.Hunger;
-        sleepinessSlider.value = catNeeds.Sleepiness;
-        happinessSlider.value = catNeeds.Happiness;
-        healthSlider.value = catNeeds.Health;
+        hungerSlider.value = catNeeds.hunger;
+        sleepinessSlider.value = catNeeds.sleepiness;
+        happinessSlider.value = catNeeds.happiness;
+        healthSlider.value = catNeeds.health;
     }
 }

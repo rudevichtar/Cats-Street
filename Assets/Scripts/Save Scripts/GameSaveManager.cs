@@ -134,10 +134,10 @@ public class GameSaveManager : MonoBehaviour
                 position = needs.transform.position,
                 rotation = needs.transform.rotation,
 
-                hunger = needs.Hunger,
-                sleepiness = needs.Sleepiness,
-                happiness = needs.Happiness,
-                health = needs.Health
+                hunger = needs.hunger,
+                sleepiness = needs.sleepiness,
+                happiness = needs.happiness,
+                health = needs.health
             });
         }
     }
@@ -167,10 +167,10 @@ public class GameSaveManager : MonoBehaviour
             CatNeeds needs = catObject.GetComponent<CatNeeds>();
             if (needs != null)
             {
-                needs.Hunger = catData.hunger;
-                needs.Sleepiness = catData.sleepiness;
-                needs.Happiness = catData.happiness;
-                needs.Health = catData.health;
+                needs.hunger = catData.hunger;
+                needs.sleepiness = catData.sleepiness;
+                needs.happiness = catData.happiness;
+                needs.health = catData.health;
 
                 if (catUIList != null)
                     catUIList.AddCat(needs);

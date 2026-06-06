@@ -8,7 +8,12 @@ public class DayNightCycle : MonoBehaviour
 {
     [SerializeField] private Light sunLight;
 
-    [SerializeField] private float phaseDuration = 300f;
+    [SerializeField] private DayResultsPanel dayResultPanel;
+    [SerializeField] private CatResourcePlacer catResourcePlacer;
+
+    [Header("Cycle")]
+    [SerializeField] private float dayDuration = 300f;     // 5 минут
+    private float nightDuration;   // 2.5 минуты
     [SerializeField] private float transitionSpeed = 1f;
 
     [SerializeField] private Color dayColor = Color.white;
@@ -24,6 +29,7 @@ public class DayNightCycle : MonoBehaviour
     private bool isDay = true;
     private int days = 1;
     private float timer;
+    private int lostCatsTotal;
 
     public bool IsDay => isDay;
     public int Days => days;
@@ -31,7 +37,12 @@ public class DayNightCycle : MonoBehaviour
 
     private void Start()
     {
-        timer = phaseDuration;
+        nightDuration = dayDuration / 2;
+
+        if (BlockLimitManager.Instance != null)
+            BlockLimitManager.Instance.SetDay(days);
+
+        timer = dayDuration;
         RenderSettings.ambientMode = AmbientMode.Flat;
         UpdateUI();
     }
@@ -50,10 +61,56 @@ public class DayNightCycle : MonoBehaviour
     private void ChangePhase()
     {
         isDay = !isDay;
-        timer = phaseDuration;
+        timer = isDay
+            ? dayDuration
+            : nightDuration;
 
         if (isDay)
+        {
             days++;
+
+            int reward = CalculateDailyReward();
+
+            if (CoinWallet.Instance != null)
+                CoinWallet.Instance.Add(reward);
+
+            if (dayResultPanel != null)
+            {
+                dayResultPanel.Show(
+                    days,
+                    GetCatsCount(),
+                    reward,
+                    lostCatsTotal,
+                    GetDifficultyMultiplier(),
+                    GetMaxDogs(),
+                    catResourcePlacer != null ? catResourcePlacer.foodCooldownSeconds : 0,
+                    catResourcePlacer != null ? catResourcePlacer.bedCooldownSeconds : 0,
+                    BlockLimitManager.Instance != null ? BlockLimitManager.Instance.MaxRoads : 0,
+                    BlockLimitManager.Instance != null ? BlockLimitManager.Instance.MaxNodes : 0
+                );
+            }
+
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayNewDaySound();
+
+            if (BlockLimitManager.Instance != null)
+                BlockLimitManager.Instance.SetDay(days);
+
+            GiveDailyReward();
+
+            CarSpawner[] spawners = FindObjectsByType<CarSpawner>(FindObjectsSortMode.None);
+
+            foreach (CarSpawner spawner in spawners)
+            {
+                if (spawner != null)
+                    spawner.ApplyTrafficDifficulty(days);
+            }
+
+            DogDangerSystem dogSystem = FindObjectOfType<DogDangerSystem>();
+
+            if (dogSystem != null)
+                dogSystem.ApplyDogDifficulty(days);
+        }
     }
 
     private void SmoothLightChange()
@@ -106,5 +163,105 @@ public class DayNightCycle : MonoBehaviour
         timer = loadedTimer;
 
         UpdateUI();
+
+        if (BlockLimitManager.Instance != null)
+            BlockLimitManager.Instance.SetDay(days);
+    }
+
+    private void GiveDailyReward()
+    {
+        CatNeeds[] cats = FindObjectsByType<CatNeeds>(FindObjectsSortMode.None);
+
+        int catsCount = 0;
+        int healthyCatsCount = 0;
+
+        foreach (CatNeeds cat in cats)
+        {
+            if (cat == null || cat.IsDead)
+                continue;
+
+            catsCount++;
+
+            if (cat.health >= 70f
+                && cat.hunger < 70f
+                && cat.sleepiness < 70f
+                && cat.happiness >= 40f)
+            {
+                healthyCatsCount++;
+            }
+        }
+
+        CoinWallet.Instance.AddDailyReward(
+            days,
+            catsCount,
+            healthyCatsCount
+        );
+    }
+
+    public void RegisterLostCat()
+    {
+        lostCatsTotal++;
+    }
+
+    private int GetCatsCount()
+    {
+        CatNeeds[] cats = FindObjectsByType<CatNeeds>(FindObjectsSortMode.None);
+
+        int count = 0;
+
+        foreach (CatNeeds cat in cats)
+        {
+            if (cat != null && !cat.IsDead)
+                count++;
+        }
+
+        return count;
+    }
+
+    private int CalculateDailyReward()
+    {
+        CatNeeds[] cats = FindObjectsByType<CatNeeds>(FindObjectsSortMode.None);
+
+        int catsCount = 0;
+        int healthyCatsCount = 0;
+
+        foreach (CatNeeds cat in cats)
+        {
+            if (cat == null || cat.IsDead)
+                continue;
+
+            catsCount++;
+
+            if (cat.health >= 70f &&
+                cat.hunger < 70f &&
+                cat.sleepiness < 70f &&
+                cat.happiness >= 40f)
+            {
+                healthyCatsCount++;
+            }
+        }
+
+        int baseReward = 40;
+        int rewardPerDay = 10;
+        int maxDayBonus = 80;
+        int rewardPerCat = 10;
+        int rewardPerHealthyCat = 5;
+
+        int dayBonus = Mathf.Min((days - 1) * rewardPerDay, maxDayBonus);
+
+        return baseReward +
+               dayBonus +
+               catsCount * rewardPerCat +
+               healthyCatsCount * rewardPerHealthyCat;
+    }
+
+    private float GetDifficultyMultiplier()
+    {
+        return 1f + (days - 1) * 0.25f;
+    }
+
+    private int GetMaxDogs()
+    {
+        return Mathf.Clamp(days / 2, 0, 5);
     }
 }

@@ -11,7 +11,7 @@ public class TrafficLightPlacer : MonoBehaviour
     [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask slotLayerMask;
     [SerializeField] private TrafficLightController trafficLightPrefab;
-    [SerializeField] private int trafficLightCost = 10;
+    private int trafficLightCost = 35;
 
     [Header("Input")]
     [SerializeField] private bool placementModeEnabled;
@@ -46,7 +46,12 @@ public class TrafficLightPlacer : MonoBehaviour
             return;
 
         if (!CoinWallet.Instance.TrySpend(trafficLightCost))
+        {
+            if (PopupHint.Instance != null)
+                PopupHint.Instance.Show("Недостаточно монет");
+
             return;
+        }
 
         TrafficLightController light = Instantiate(
             trafficLightPrefab,

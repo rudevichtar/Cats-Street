@@ -7,7 +7,7 @@ public class NodeBlocker : MonoBehaviour
     [SerializeField] private GameObject blockVisual;
 
     [Header("Auto Unlock")]
-    [SerializeField] private float blockDuration = 10f;
+    [SerializeField] private float blockDuration = 5f;
 
     private GraphNode node;
     private Coroutine unblockCoroutine;
@@ -20,31 +20,56 @@ public class NodeBlocker : MonoBehaviour
             blockVisual.SetActive(false);
     }
 
-    public void SetBlocked(bool blocked)
+    public bool SetBlocked(bool blocked)
     {
         if (node == null)
-            return;
+            return false;
+
+        bool wasBlocked = node.IsBlocked;
+
+        if (blocked && !wasBlocked)
+        {
+            if (BlockLimitManager.Instance != null)
+            {
+                if (!BlockLimitManager.Instance.CanBlockNode())
+                {
+                    float timeLeft = BlockLimitManager.Instance.GetFirstNodeRemainingTime();
+
+                    if (PopupHint.Instance != null)
+                    {
+                        PopupHint.Instance.Show(
+                            $"Лимит закрытых точек. Осталось {Mathf.CeilToInt(timeLeft)} сек."
+                        );
+                    }
+
+                    return false;
+                }
+
+                BlockLimitManager.Instance.RegisterNodeBlock(blockDuration);
+            }
+        }
+
+        if (!blocked && wasBlocked)
+        {
+            if (BlockLimitManager.Instance != null)
+                BlockLimitManager.Instance.UnregisterNodeBlock();
+        }
 
         node.IsBlocked = blocked;
 
         if (blockVisual != null)
             blockVisual.SetActive(blocked);
 
-        if (blocked)
+        if (unblockCoroutine != null)
         {
-            if (unblockCoroutine != null)
-                StopCoroutine(unblockCoroutine);
+            StopCoroutine(unblockCoroutine);
+            unblockCoroutine = null;
+        }
 
+        if (blocked)
             unblockCoroutine = StartCoroutine(AutoUnblock());
-        }
-        else
-        {
-            if (unblockCoroutine != null)
-            {
-                StopCoroutine(unblockCoroutine);
-                unblockCoroutine = null;
-            }
-        }
+
+        return true;
     }
 
     public void ToggleBlocked()
@@ -57,7 +82,6 @@ public class NodeBlocker : MonoBehaviour
         yield return new WaitForSeconds(blockDuration);
 
         SetBlocked(false);
-
         unblockCoroutine = null;
     }
 }

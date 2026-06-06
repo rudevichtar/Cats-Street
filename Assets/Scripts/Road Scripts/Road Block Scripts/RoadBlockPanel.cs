@@ -83,11 +83,14 @@ public class RoadBlockPanel : MonoBehaviour
 
         bool shouldBeBlocked = !isOn;
 
-        RoadBlockSystem.Instance.SetBlockedBidirectional(
+        bool success = RoadBlockSystem.Instance.SetBlockedBidirectional(
             selectedRoad.From,
             selectedRoad.To,
             shouldBeBlocked
         );
+
+        if (!success)
+            Refresh();
 
         Refresh();
 

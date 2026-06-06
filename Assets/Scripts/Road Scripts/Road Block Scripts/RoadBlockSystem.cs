@@ -13,12 +13,6 @@ public class RoadBlockSystem : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
         Instance = this;
     }
 
@@ -27,19 +21,50 @@ public class RoadBlockSystem : MonoBehaviour
         GraphConnection connection = FindConnection(from, to);
 
         if (connection == null)
-        {
-            Debug.LogWarning($"Связь не найдена: {from.name} -> {to.name}");
             return;
-        }
 
-        bool shouldBeBlocked = !connection.IsBlocked;
-        SetBlockedBidirectional(from, to, shouldBeBlocked);
+        SetBlockedBidirectional(from, to, !connection.IsBlocked);
     }
 
-    public void SetBlockedBidirectional(GraphNode from, GraphNode to, bool blocked)
+    public bool SetBlockedBidirectional(GraphNode from, GraphNode to, bool blocked)
     {
         GraphConnection forward = FindConnection(from, to);
         GraphConnection backward = FindConnection(to, from);
+
+        if (forward == null && backward == null)
+            return false;
+
+        bool wasBlocked =
+            (forward != null && forward.IsBlocked) ||
+            (backward != null && backward.IsBlocked);
+
+        if (blocked && !wasBlocked)
+        {
+            if (BlockLimitManager.Instance != null)
+            {
+                if (!BlockLimitManager.Instance.CanBlockRoad())
+                {
+                    float timeLeft = BlockLimitManager.Instance.GetFirstRoadRemainingTime();
+
+                    if (PopupHint.Instance != null)
+                    {
+                        PopupHint.Instance.Show(
+                            $"Лимит закрытых дорог. Осталось {Mathf.CeilToInt(timeLeft)} сек."
+                        );
+                    }
+
+                    return false;
+                }
+
+                BlockLimitManager.Instance.RegisterRoadBlock(maxBlockTime);
+            }
+        }
+
+        if (!blocked && wasBlocked)
+        {
+            if (BlockLimitManager.Instance != null)
+                BlockLimitManager.Instance.UnregisterRoadBlock();
+        }
 
         if (forward != null)
             forward.SetBlocked(blocked);
@@ -57,21 +82,18 @@ public class RoadBlockSystem : MonoBehaviour
 
         if (blocked)
         {
-            Coroutine timer = StartCoroutine(AutoUnblockAfterDelay(from, to, key));
+            Coroutine timer = StartCoroutine(AutoUnblockAfterDelay(from, to));
             unblockTimers.Add(key, timer);
         }
+
+        return true;
     }
 
-    private IEnumerator AutoUnblockAfterDelay(GraphNode from, GraphNode to, string key)
+    private IEnumerator AutoUnblockAfterDelay(GraphNode from, GraphNode to)
     {
         yield return new WaitForSeconds(maxBlockTime);
 
-        GraphConnection forward = FindConnection(from, to);
-
-        if (forward != null && forward.IsBlocked)
-            SetBlockedBidirectional(from, to, false);
-
-        unblockTimers.Remove(key);
+        SetBlockedBidirectional(from, to, false);
     }
 
     private GraphConnection FindConnection(GraphNode from, GraphNode to)

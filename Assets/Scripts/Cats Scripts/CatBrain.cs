@@ -101,8 +101,8 @@ public class CatBrain : MonoBehaviour
         GraphNode nearestNode = GraphManager.GetClosestNode(transform.position);
 
         bool inDanger = nearestNode != null && nearestNode.DangerLevel >= DangerEscapeThreshold;
-        bool hungry = needs.Hunger >= HungerThreshold;
-        bool sleepy = needs.Sleepiness >= SleepThreshold;
+        bool hungry = needs.hunger >= HungerThreshold;
+        bool sleepy = needs.sleepiness >= SleepThreshold;
 
         CatState desiredState;
 
@@ -112,8 +112,8 @@ public class CatBrain : MonoBehaviour
         }
         else if (hungry && sleepy)
         {
-            float hungerPriority = needs.Hunger - HungerThreshold;
-            float sleepPriority = needs.Sleepiness - SleepThreshold;
+            float hungerPriority = needs.hunger - HungerThreshold;
+            float sleepPriority = needs.sleepiness - SleepThreshold;
 
             desiredState = hungerPriority >= sleepPriority
                 ? CatState.GoToFood
